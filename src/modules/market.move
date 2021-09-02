@@ -2,7 +2,7 @@ address 0x01e562444828aeb8ac7eb0c060e6f274 {
 // address 0x1 {
 module Market {
     use 0x1::Signer;
-    use 0x1::NFT::{Self, Metadata, MintCapability};
+    use 0x1::NFT::{Self, NFT, Metadata, MintCapability, UpdateCapability};
     use 0x1::NFTGallery;
     // use 0x1::CoreAddresses;
     use 0x1::Account;
@@ -28,6 +28,7 @@ module Market {
     const MARKET_INVALID_INDEX: u64 = 304;
     //The auction is not over
     const MARKET_NOT_OVER: u64 = 305;
+    const MARKET_INVALID_NFT_ID: u64 = 305;
 
     const MARKET_FEE_RATE: u128 = 3;
 
@@ -44,6 +45,7 @@ module Market {
         pull_off_events: Event::EventHandle<PullOffEvent>,
         bid_events: Event::EventHandle<BidEvent>,
         settlement_events: Event::EventHandle<SettlementEvent>,
+        nfts: vector<NFT<GoodsNFTInfo, GoodsNFTBody>>,
     }
 
     struct GoodsNFTBody has store{
@@ -70,7 +72,7 @@ module Market {
         //amount of put on
         amount: u64,
         //Whether there is already NFT
-        has_nft: bool,
+        nft_id: u64,
         //base price
         base_price: u128,
         //min add price
@@ -102,7 +104,7 @@ module Market {
         //seller
         owner: address,
         //Whether there is already NFT
-        has_nft: bool,
+        nft_id: u64,
         //base price
         base_price: u128,
         //min add price
@@ -121,6 +123,7 @@ module Market {
     struct PullOffEvent has drop, store {
         owner: address,
         goods_id: u128,
+        nft_id: u64,
     }
 
     struct BidEvent has drop, store {
@@ -145,8 +148,9 @@ module Market {
         items: vector<Goods>,
     }
 
-    struct GoodsNFTMintCapability has key {
-        cap: MintCapability<GoodsNFTInfo>,
+    struct GoodsNFTCapability has key {
+        mint_cap: MintCapability<GoodsNFTInfo>,
+        update_cap: UpdateCapability<GoodsNFTInfo>,
     }
 
     fun empty_info(): GoodsNFTInfo {
@@ -159,11 +163,12 @@ module Market {
     }
     
     public fun init(sender: &signer, cashier: address) {        
-        let _addr = check_market(sender);
+        let _addr = check_market_owner(sender);
         
         NFT::register<GoodsNFTInfo, GoodsNFTInfo>(sender, empty_info(), NFT::empty_meta());
-        let cap = NFT::remove_mint_capability<GoodsNFTInfo>(sender);
-        move_to(sender, GoodsNFTMintCapability{cap});
+        let mint_cap = NFT::remove_mint_capability<GoodsNFTInfo>(sender);
+        let update_cap = NFT::remove_update_capability<GoodsNFTInfo>(sender);
+        move_to(sender, GoodsNFTCapability{mint_cap, update_cap});
         
         move_to<Market>(sender, Market{
             counter: 0,
@@ -175,14 +180,15 @@ module Market {
             pull_off_events: Event::new_event_handle<PullOffEvent>(sender),
             bid_events: Event::new_event_handle<BidEvent>(sender),
             settlement_events: Event::new_event_handle<SettlementEvent>(sender),
+            nfts: Vector::empty<NFT<GoodsNFTInfo, GoodsNFTBody>>(),
         });
     }
 
-    fun mint_nft(creator: address, receiver: address, quantity: u64, base_meta: Metadata, type_meta: GoodsNFTInfo): u64 acquires GoodsNFTMintCapability {
-        let cap = borrow_global_mut<GoodsNFTMintCapability>(MARKET_ADDRESS);
+    fun mint_nft(creator: address, receiver: address, quantity: u64, base_meta: Metadata, type_meta: GoodsNFTInfo): u64 acquires GoodsNFTCapability {
+        let cap = borrow_global_mut<GoodsNFTCapability>(MARKET_ADDRESS);
         let tm = copy type_meta;
         let md = copy base_meta;
-        let nft = NFT::mint_with_cap<GoodsNFTInfo, GoodsNFTBody, GoodsNFTInfo>(creator, &mut cap.cap, md, tm, GoodsNFTBody{quantity});
+        let nft = NFT::mint_with_cap<GoodsNFTInfo, GoodsNFTBody, GoodsNFTInfo>(creator, &mut cap.mint_cap, md, tm, GoodsNFTBody{quantity});
         let id = NFT::get_id(&nft);
         NFTGallery::deposit_to(receiver, nft);
         id
@@ -202,10 +208,73 @@ module Market {
         }
     }
 
-    public fun put_on(sender: &signer, goods_id: u128, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) acquires Market, GoodsBasket {
+    public fun put_on_nft(sender: &signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>) acquires Market, GoodsNFTCapability, GoodsBasket {
+        let op_nft = NFTGallery::withdraw<GoodsNFTInfo, GoodsNFTBody>(sender, nft_id);
+        assert(Option::is_some(&op_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));
+
+        let nft = Option::destroy_some(op_nft);
+        let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
+        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        // add goods count
+        market_info.counter = market_info.counter + 1;
+        // create goods
+        let nft_info = NFT::get_info<GoodsNFTInfo, GoodsNFTBody>(&nft);
+        let (nft_id, _, base_meta, type_meta) = NFT::unpack_info<GoodsNFTInfo>(nft_info);
+        type_meta.mail = mail;
+
+        let bm = copy base_meta;
+        let tm = copy type_meta;
+        let cap = borrow_global_mut<GoodsNFTCapability>(MARKET_ADDRESS);
+        let body = NFT::borrow_body_mut_with_cap<GoodsNFTInfo, GoodsNFTBody>(&mut cap.update_cap, &mut nft);
+        let amount = body.quantity;
+        let owner = Signer::address_of(sender);
+        let id = (market_info.counter as u128);
+        let goods = Goods{
+            id: id,
+            creator: owner,
+            amount: amount,
+            nft_id: nft_id,
+            base_price: base_price,
+            add_price: add_price,
+            last_price: base_price,
+            sell_amount: 0,
+            end_time: end_time,
+            nft_base_meta: base_meta,
+            nft_type_meta: type_meta,
+            bid_list: Vector::empty<BidData>(),
+        };
+        // add basket
+        add_basket(sender);
+        save_goods(owner, goods);
+        // deposit nft to market
+        // NFTGallery::deposit_to<GoodsNFTInfo, GoodsNFTBody>(MARKET_ADDRESS, nft);
+        deposit_nft(&mut market_info.nfts, nft);
+        // do emit event
+        Event::emit_event(&mut market_info.put_on_events, PutOnEvent{
+            goods_id: id,
+            //seller
+            owner: owner,
+            nft_id: nft_id,
+            //base price
+            base_price: base_price,
+            //min add price
+            add_price: add_price,
+            //total amount
+            amount: amount,
+            // puton time
+            put_on_time: Timestamp::now_seconds(),
+            //end time
+            end_time: end_time,
+            nft_base_meta: bm,
+            nft_type_meta: tm,
+        });
+    }
+
+    public fun put_on(sender: &signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) acquires Market, GoodsBasket {
         // save counter
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
         assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+
         market_info.counter = market_info.counter + 1;
         let meta = NFT::new_meta_with_image(title, image, desc);
         let type_meta = GoodsNFTInfo{has_in_kind, type, resource_url, mail};
@@ -213,15 +282,12 @@ module Market {
         let tm2 = copy type_meta;
         // create goods
         let owner = Signer::address_of(sender);
-        let id = goods_id;
-        if(goods_id == 0){
-            id = (market_info.counter as u128);
-        };
+        let id = (market_info.counter as u128);
         let goods = Goods{
             id: id,
             creator: owner,
             amount: amount,
-            has_nft: false,
+            nft_id: 0,
             base_price: base_price,
             add_price: add_price,
             last_price: base_price,
@@ -239,7 +305,7 @@ module Market {
             goods_id: id,
             //seller
             owner: owner,
-            has_nft: false,
+            nft_id: 0,
             //base price
             base_price: base_price,
             //min add price
@@ -270,6 +336,24 @@ module Market {
                 return Option::none()
             };
             index = index - 1;
+        }
+    }
+
+    public fun find_nft_index_by_id(c: &vector<NFT<GoodsNFTInfo, GoodsNFTBody>>, id: u64): Option<u64> {
+        let len = Vector::length(c);
+        if (len == 0) {
+            return Option::none()
+        };
+        let idx = len - 1;
+        loop {
+            let nft = Vector::borrow(c, idx);
+            if (NFT::get_id(nft) == id) {
+                return Option::some(idx)
+            };
+            if (idx == 0) {
+                return Option::none()
+            };
+            idx = idx - 1;
         }
     }
 
@@ -323,17 +407,45 @@ module Market {
         Vector::borrow_mut<BidData>(list, index)
     }
 
+    fun deposit_nft(list: &mut vector<NFT<GoodsNFTInfo, GoodsNFTBody>>, nft: NFT<GoodsNFTInfo, GoodsNFTBody>) {
+        Vector::push_back(list, nft);
+    }
+
+    fun withdraw_nft(list: &mut vector<NFT<GoodsNFTInfo, GoodsNFTBody>>, nft_id: u64): Option<NFT<GoodsNFTInfo, GoodsNFTBody>> {
+        let len = Vector::length(list);
+        let nft = if (len == 0) {
+            Option::none()
+        }else {
+            let idx = find_nft_index_by_id(list, nft_id);
+            if (Option::is_some(&idx)) {
+                let i = Option::extract(&mut idx);
+                let nft = Vector::remove<NFT<GoodsNFTInfo, GoodsNFTBody>>(list, i);
+                Option::some(nft)
+            }else {
+                Option::none()
+            }
+        };
+        nft
+    }
+
     fun market_pull_off(owner: address, goods_id: u128) acquires Market, GoodsBasket{
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
         let g = get_goods(owner, goods_id);
         if(Option::is_some(&g)){
             let goods = Option::extract(&mut g);
             if(Vector::length(&goods.bid_list) == 0){
-                let Goods{ id, creator: _, amount: _, has_nft: _, base_price: _, add_price: _, last_price: _, sell_amount: _, end_time: _, nft_base_meta: _, nft_type_meta: _, bid_list: _, } = goods;
+                let Goods{ id, creator, amount: _, nft_id, base_price: _, add_price: _, last_price: _, sell_amount: _, end_time: _, nft_base_meta: _, nft_type_meta: _, bid_list: _, } = goods;
+                if(nft_id > 0 ) {
+                    let op_nft = withdraw_nft(&mut market_info.nfts, nft_id);
+                    let nft = Option::destroy_some(op_nft);
+                    // deposit nft to creator
+                    NFTGallery::deposit_to<GoodsNFTInfo, GoodsNFTBody>(creator, nft);
+                };
                 // do emit event
                 Event::emit_event(&mut market_info.pull_off_events, PullOffEvent{
                     goods_id: id,
                     owner: owner,
+                    nft_id: nft_id,
                 });
             } else {
                 save_goods(owner, goods);
@@ -433,10 +545,11 @@ module Market {
     public fun bid(sender: &signer, seller: address, goods_id: u128, price: u128, quantity: u64) acquires Market, GoodsBasket {
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
         assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+
         let sender_addr = Signer::address_of(sender);
         let basket = borrow_global_mut<GoodsBasket>(seller);
         let goods = borrow_goods(&mut basket.items, goods_id);
-        if(goods.has_nft) {
+        if(goods.nft_id > 0) {
             assert(quantity == goods.amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
         };
         let now = Timestamp::now_seconds();
@@ -505,13 +618,13 @@ module Market {
     }
 
     public fun set_lock(sender: &signer, is_lock: bool) acquires Market {
-        check_market(sender);
+        check_market_owner(sender);
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
         market_info.is_lock = is_lock;
     }
 
-    public fun settlement(sender: &signer, seller: address, goods_id: u128) acquires Market, GoodsBasket, GoodsNFTMintCapability {
-        check_market(sender);
+    public fun settlement(sender: &signer, seller: address, goods_id: u128) acquires Market, GoodsBasket, GoodsNFTCapability {
+        check_market_owner(sender);
         let basket = borrow_global_mut<GoodsBasket>(seller);
         let g = borrow_goods(&mut basket.items, goods_id);
         let now = Timestamp::now_seconds();
@@ -523,11 +636,19 @@ module Market {
             let goods = Option::extract(&mut og);
             let i = 0u64;
             while(i < len) {
+                let nft_id = goods.nft_id;
                 let bm = *&goods.nft_base_meta;
                 let tm = *&goods.nft_type_meta;
                 let bid_data = borrow_bid_data(&mut goods.bid_list, i);
                 //mint nft
-                let nft_id = mint_nft(seller, bid_data.buyer, bid_data.quantity, bm, tm);
+                if(nft_id > 0) {
+                    let op_nft = withdraw_nft(&mut market_info.nfts, nft_id);
+                    let nft = Option::destroy_some(op_nft);
+                    // deposit nft to buyer
+                    NFTGallery::deposit_to<GoodsNFTInfo, GoodsNFTBody>(bid_data.buyer, nft);
+                } else {
+                    nft_id = mint_nft(seller, bid_data.buyer, bid_data.quantity, bm, tm);
+                };
                 //handling charge
                 let fee = (bid_data.total_coin * MARKET_FEE_RATE) / 100;
                 if(fee > 0u128) {
@@ -557,22 +678,11 @@ module Market {
         };
     }
 
-    fun check_market(sender: &signer): address {
+    fun check_market_owner(sender: &signer): address {
         let addr = Signer::address_of(sender);
         assert(addr == MARKET_ADDRESS, Errors::invalid_argument(1000));
         addr
     }
-
-    //********************************* scripts **********************************/
-    // account import -i 0x1d2b2c34eef7d047ca0a53b3e75938c8dc7722bc505fa475c7e29a12c58cebe0
-    // dev get_coin -v 10000 0x01e562444828aeb8ac7eb0c060e6f274
-    // dev compile src/modules/market.move
-
-    // dev deploy -b -s 0x01e562444828aeb8ac7eb0c060e6f274 <directory>
-
-    //state get resource 0x01e562444828aeb8ac7eb0c060e6f274 0x01e562444828aeb8ac7eb0c060e6f274::Market::Market
-
-    //state get resource 0x01e562444828aeb8ac7eb0c060e6f274 0x01e562444828aeb8ac7eb0c060e6f274::Market::GoodsBasket
 }
 
 module MarketScript {
@@ -583,10 +693,17 @@ module MarketScript {
         Market::init(&account, cashier);
     }
 
-    public(script) fun put_on(account: signer, goods_id: u128, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) {
-        Market::put_on(&account, goods_id, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail);
+    //account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::put_on --arg <...>
+    public(script) fun put_on(account: signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) {
+        Market::put_on(&account, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail);
     }
 
+    //account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::put_on_nft --arg <...>
+    public(script) fun put_on_nft(sender: signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>) {
+        Market::put_on_nft(&sender, nft_id, base_price, add_price, end_time, mail);
+    }
+
+    //account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::pull_off --arg <...>
     public(script) fun pull_off(account: signer, goods_id: u128) {
         Market::pull_off(&account, goods_id);
     }
@@ -602,19 +719,9 @@ module MarketScript {
         Market::settlement(&sender, seller, goods_id);
     }
 
+    // account execute-function -b -s 0x01e562444828aeb8ac7eb0c060e6f274 --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::set_lock --arg false
     public(script) fun set_lock(sender: signer, is_lock: bool) {
         Market::set_lock(&sender, is_lock);
-    }
-
-
-
-
-    /***************************test***************************/
-
-    //account execute-function -b -s 0x01e562444828aeb8ac7eb0c060e6f274 --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::test_put_on --arg 4u128
-    // "gas_used": "139312"
-    public(script) fun test_put_on(account: signer, id: u128) {
-        Market::put_on(&account, id, b"test goods 2", 1, 10, 2, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, 1631001873, 50, b"qq@qq.com");
     }
 }
 }

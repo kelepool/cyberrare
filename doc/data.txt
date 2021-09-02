@@ -1,0 +1,133 @@
+NFT:
+	ID
+	标题
+	类型
+	描述
+	是否有实物
+	数量
+	联系人邮件
+
+	实际数据：
+		{
+			"creator": "0xcf94727afcfad7dcc59ef494f0cc4229",
+			"id": 1,
+			"base_meta": {
+				"name": "0x7465737420676f6f64732032",	//标题
+				"image": "0x687474703a2f2f62616964752e636f6d",
+				"image_data": "0x",
+				"description": "0x646573632064657363"	//描述
+			},
+			"type_meta": {
+				"has_in_kind": true,			//是否有实物
+				"type": 1,						//类型
+				"resource_url": "0x687474703a2f2f62616964752e636f6d",
+				"mail": "0x71714071712e636f6d"	//联系人邮件	
+			},
+			"body": {
+				"quantity": 1					//数量
+			}
+		}
+
+出价数据：
+	出价人
+	商品ID
+	单价
+	数量
+	出价次数
+	出价时间
+
+商品数据：
+	商品ID
+	创建者
+	卖家
+	NFT ID(一次销售时为0,二次销售时为实际的id)
+	底价
+	加价幅度
+	总数量
+	已拍数量
+	最高出价
+	开始时间
+	结束时间
+
+上架逻辑:
+	1.只上架商品数据
+	2.上架不可修改的NFT
+
+出价规则：
+	1.实物类型NFT出售条件，创建人和持有人必须是自己的情况才可出售。(暂时不用)
+	2.购买数量不能超过总量，若购买数量小于等于未拍数量，则出价可以使用底价；若购买数量大于未拍数量，则出价必须大于最高单价，加价幅度不得低于最低加价。
+	3.二次销售的商品不能拍数量,要拍就一起拍
+
+结算规则:
+	1.从最高出价开始计算实得NFT
+	2.按实得数量扣取币、发放NFT
+	3.未实得与未中标需要退币
+	4.结算时才发行出NFT，存到买家下
+
+事件:
+	1.上架事件:商品id,卖家,是否二手,底价,加价幅度,数量,上架时间,结束时间,nft_base_meta,nft_type_meta
+		"decode_event_data": {
+			"goods_id": 1,
+		    "owner": "0xe6befcafafda3edb7294baf5311ccf0f",
+			"nft_id": 0,
+			"base_price": 10,
+			"add_price": 2,
+			"amount": 50,
+			"put_on_time": 32,
+			"end_time": 1630243014000,
+			"nft_base_meta": {
+				"name": "0x7465737420676f6f64732032",
+				"image": "0x687474703a2f2f62616964752e636f6d",
+				"image_data": "0x",
+				"description": "0x646573632064657363"
+			},
+			"nft_type_meta": {
+				"has_in_kind": true,
+				"type": 1,
+				"resource_url": "0x687474703a2f2f62616964752e636f6d",
+				"mail": "0x71714071712e636f6d"
+			}
+		}
+	2.下架事件:卖家,商品id
+		"decode_event_data": {
+			"owner": "0xe6befcafafda3edb7294baf5311ccf0f",
+			"goods_id": 1,
+		    "nft_id": 0
+		}
+	3.出价事件:出价人,商品id,出价,数量
+		"decode_event_data": {
+			"bidder": "0xe6befcafafda3edb7294baf5311ccf0f",
+			"goods_id": 1,
+			"price": 12,
+			"quantity": 1
+		}
+	4.结算事件: 卖家,买家,商品id,NFT ID,单价,数量,结算时间
+		"decode_event_data": {
+			"seller": "0xcf94727afcfad7dcc59ef494f0cc4229",
+			"buyer": "0xcf94727afcfad7dcc59ef494f0cc4229",
+			"goods_id": 3,
+			"nft_id": 1,
+			"price": 12,
+			"quantity": 1,
+			"time": 362
+		}
+
+功能:
+	1.上架(创建人,标题,类型,底价,加价幅度,预览图url,资源url,描述,是否有实物,结束时间,数量,联系人邮件)
+	2.出价(出价人,卖家地址,商品id,单价,数量)
+	3.下架(卖家,商品id)
+	4.结算(特权号,商品id)[特权号中心服务调用]
+
+市场数据:
+	//商品记数器
+	counter: u64,
+	//是否关闭市场
+	is_lock: bool,
+	//托管的资金
+	funds: Token<STC>,
+	//收取交易费的地址
+	cashier: address,
+	//交易费率3%
+	fee_rate: u64,
+	//NFTs
+	nfts: vector<NFT<GoodsNFTInfo, GoodsNFTBody>>

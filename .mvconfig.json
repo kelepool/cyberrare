@@ -1,5 +1,5 @@
 {
-    "network": "libra",
+    "network": "dev",
     "sender": "0x1",
-    "compilerDir": "out"
+    "compilerDir": "build"
 }
