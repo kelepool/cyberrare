@@ -723,5 +723,13 @@ module MarketScript {
     public(script) fun set_lock(sender: signer, is_lock: bool) {
         Market::set_lock(&sender, is_lock);
     }
+
+    // public(script) fun test_put_on(sender: signer, end_time: u64) {
+    //     Market::put_on(&sender, b"test goods", 1, 10, 2, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 50, b"qq@qq.com");
+    // }
+
+    // public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
+    //     Market::put_on_nft(&sender, nft_id, 12, 2, end_time, b"qq@qq.com");
+    // }
 }
 }
