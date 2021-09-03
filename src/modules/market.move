@@ -1,4 +1,4 @@
-address 0x01e562444828aeb8ac7eb0c060e6f274 {
+address 0xee9227f1b5922ba4e1cefcb1b6e3638f {
 // address 0x1 {
 module Market {
     use 0x1::Signer;
@@ -15,7 +15,7 @@ module Market {
     use 0x1::Vector;
     use 0x1::Option::{Self, Option};
 
-    const MARKET_ADDRESS: address = @0x01e562444828aeb8ac7eb0c060e6f274;
+    const MARKET_ADDRESS: address = @0xee9227f1b5922ba4e1cefcb1b6e3638f;
     // const MARKET_ADDRESS: address = @0x1;
 
     //The market is closed
@@ -686,40 +686,40 @@ module Market {
 }
 
 module MarketScript {
-    use 0x01e562444828aeb8ac7eb0c060e6f274::Market;
+    use 0xee9227f1b5922ba4e1cefcb1b6e3638f::Market;
 
-    //account execute-function -b -s 0x01e562444828aeb8ac7eb0c060e6f274 --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::init_market --arg 0x01e562444828aeb8ac7eb0c060e6f274
+    //account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::init_market --arg 0xee9227f1b5922ba4e1cefcb1b6e3638f
     public(script) fun init_market(account: signer, cashier: address) {
         Market::init(&account, cashier);
     }
 
-    //account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::put_on --arg <...>
+    //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::put_on --arg <...>
     public(script) fun put_on(account: signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) {
         Market::put_on(&account, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail);
     }
 
-    //account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::put_on_nft --arg <...>
+    //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::put_on_nft --arg <...>
     public(script) fun put_on_nft(sender: signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>) {
         Market::put_on_nft(&sender, nft_id, base_price, add_price, end_time, mail);
     }
 
-    //account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::pull_off --arg <...>
+    //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::pull_off --arg <...>
     public(script) fun pull_off(account: signer, goods_id: u128) {
         Market::pull_off(&account, goods_id);
     }
 
-    // account execute-function -b --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::bid --arg 0x01e562444828aeb8ac7eb0c060e6f274 1u128 12u128 1u64
+    // account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::bid --arg 0xee9227f1b5922ba4e1cefcb1b6e3638f 1u128 12u128 1u64
     // "gas_used": "344104"
     public(script) fun bid(account: signer, seller: address, goods_id: u128, price: u128, quantity: u64) {
         Market::bid(&account, seller, goods_id, price, quantity);
     }
 
-    // account execute-function -b -s 0x01e562444828aeb8ac7eb0c060e6f274 --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::settlement --arg 0x01e562444828aeb8ac7eb0c060e6f274 1u128
+    // account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::settlement --arg 0xee9227f1b5922ba4e1cefcb1b6e3638f 1u128
     public(script) fun settlement(sender: signer, seller: address, goods_id: u128) {
         Market::settlement(&sender, seller, goods_id);
     }
 
-    // account execute-function -b -s 0x01e562444828aeb8ac7eb0c060e6f274 --function 0x01e562444828aeb8ac7eb0c060e6f274::MarketScript::set_lock --arg false
+    // account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::set_lock --arg false
     public(script) fun set_lock(sender: signer, is_lock: bool) {
         Market::set_lock(&sender, is_lock);
     }
