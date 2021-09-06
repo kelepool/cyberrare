@@ -141,7 +141,7 @@ module Market {
         nft_id: u64,
         price: u128,
         quantity: u64,
-        put_on_time: u64,
+        bid_time: u64,
         time: u64,
     }
 
@@ -653,7 +653,7 @@ module Market {
                     nft_id: nft_id,
                     price: bid_data.price,
                     quantity: bid_data.quantity,
-                    put_on_time: bid_data.bid_time,
+                    bid_time: bid_data.bid_time,
                     time: now,
                 });
                 i = i + 1;
