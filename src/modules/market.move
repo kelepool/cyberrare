@@ -115,6 +115,7 @@ module Market {
         put_on_time: u64,
         //end time
         end_time: u64,
+        original_goods_id: u128,
         nft_base_meta: Metadata,
         nft_type_meta: GoodsNFTInfo,
     }
@@ -208,7 +209,7 @@ module Market {
         }
     }
 
-    public fun put_on_nft(sender: &signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>) acquires Market, GoodsNFTCapability, GoodsBasket {
+    public fun put_on_nft(sender: &signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>, original_goods_id: u128) acquires Market, GoodsNFTCapability, GoodsBasket {
         let op_nft = NFTGallery::withdraw<GoodsNFTInfo, GoodsNFTBody>(sender, nft_id);
         assert(Option::is_some(&op_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));
 
@@ -265,12 +266,13 @@ module Market {
             put_on_time: Timestamp::now_seconds(),
             //end time
             end_time: end_time,
+            original_goods_id: original_goods_id,
             nft_base_meta: bm,
             nft_type_meta: tm,
         });
     }
 
-    public fun put_on(sender: &signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) acquires Market, GoodsBasket {
+    public fun put_on(sender: &signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>, original_goods_id: u128) acquires Market, GoodsBasket {
         // save counter
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
         assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
@@ -316,6 +318,7 @@ module Market {
             put_on_time: Timestamp::now_seconds(),
             //end time
             end_time: end_time,
+            original_goods_id: original_goods_id,
             nft_base_meta: m2,
             nft_type_meta: tm2,
         });
@@ -694,13 +697,13 @@ module MarketScript {
     }
 
     //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::put_on --arg <...>
-    public(script) fun put_on(account: signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>) {
-        Market::put_on(&account, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail);
+    public(script) fun put_on(account: signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>, original_goods_id: u128) {
+        Market::put_on(&account, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail, original_goods_id);
     }
 
     //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::put_on_nft --arg <...>
-    public(script) fun put_on_nft(sender: signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>) {
-        Market::put_on_nft(&sender, nft_id, base_price, add_price, end_time, mail);
+    public(script) fun put_on_nft(sender: signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>, original_goods_id: u128) {
+        Market::put_on_nft(&sender, nft_id, base_price, add_price, end_time, mail, original_goods_id);
     }
 
     //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::pull_off --arg <...>
