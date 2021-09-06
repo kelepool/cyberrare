@@ -568,38 +568,18 @@ module Market {
         NFTGallery::accept<GoodsNFTInfo, GoodsNFTBody>(sender);
         //save state
         let new_amount = price * (quantity as u128);
-        let bid_index = find_bid_index(&goods.bid_list, goods.id, sender_addr);
-        if(Option::is_some(&bid_index)) {
-            let index = Option::extract(&mut bid_index);
-            let bid_data = borrow_bid_data(&mut goods.bid_list, index);
-            if(new_amount > bid_data.total_coin) {
-                //deduction
-                let tokens = Account::withdraw<STC>(sender, new_amount - bid_data.total_coin);
-                Token::deposit(&mut market_info.funds, tokens);
-            } else if (new_amount < bid_data.total_coin) {
-                //refunds
-                let tokens = Token::withdraw<STC>(&mut market_info.funds, bid_data.total_coin - new_amount);
-                Account::deposit(sender_addr, tokens);
-            };
-            bid_data.price = price;
-            bid_data.quantity = quantity;
-            bid_data.bid_count = bid_data.bid_count + 1;
-            bid_data.bid_time = now;
-            bid_data.total_coin = new_amount;
-        } else {
-            //deduction
-            let tokens = Account::withdraw<STC>(sender, new_amount);
-            Token::deposit(&mut market_info.funds, tokens);
-            save_bid(&mut goods.bid_list, BidData{
-                buyer: sender_addr,
-                goods_id,
-                price,
-                quantity,
-                bid_count: 1,
-                bid_time: now,
-                total_coin: new_amount,
-            });
-        };
+        //deduction
+        let tokens = Account::withdraw<STC>(sender, new_amount);
+        Token::deposit(&mut market_info.funds, tokens);
+        save_bid(&mut goods.bid_list, BidData{
+            buyer: sender_addr,
+            goods_id,
+            price,
+            quantity,
+            bid_count: 1,
+            bid_time: now,
+            total_coin: new_amount,
+        });
         if(price > goods.last_price) {
             goods.last_price = price;
         };
@@ -728,7 +708,7 @@ module MarketScript {
     }
 
     // public(script) fun test_put_on(sender: signer, end_time: u64) {
-    //     Market::put_on(&sender, b"test goods", 1, 10, 2, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 50, b"qq@qq.com");
+    //     Market::put_on(&sender, b"test goods", 1, 10, 2, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 50, b"qq@qq.com",0);
     // }
 
     // public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
