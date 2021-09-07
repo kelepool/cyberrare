@@ -83,6 +83,7 @@ module Market {
         sell_amount: u64,
         //end time
         end_time: u64,
+        original_goods_id: u128,
         nft_base_meta: Metadata,
         nft_type_meta: GoodsNFTInfo,
         bid_list: vector<BidData>,
@@ -241,6 +242,7 @@ module Market {
             last_price: base_price,
             sell_amount: 0,
             end_time: end_time,
+            original_goods_id: original_goods_id,
             nft_base_meta: base_meta,
             nft_type_meta: type_meta,
             bid_list: Vector::empty<BidData>(),
@@ -296,6 +298,7 @@ module Market {
             last_price: base_price,
             sell_amount: 0,
             end_time: end_time,
+            original_goods_id: original_goods_id,
             nft_base_meta: meta,
             nft_type_meta: type_meta,
             bid_list: Vector::empty<BidData>(),
@@ -438,7 +441,7 @@ module Market {
         if(Option::is_some(&g)){
             let goods = Option::extract(&mut g);
             if(Vector::length(&goods.bid_list) == 0){
-                let Goods{ id, creator, amount: _, nft_id, base_price: _, add_price: _, last_price: _, sell_amount: _, end_time: _, nft_base_meta: _, nft_type_meta: _, bid_list: _, } = goods;
+                let Goods{ id, creator, amount: _, nft_id, base_price: _, add_price: _, last_price: _, sell_amount: _, end_time: _, nft_base_meta: _, nft_type_meta: _, bid_list: _, original_goods_id: _ } = goods;
                 if(nft_id > 0 ) {
                     let op_nft = withdraw_nft(&mut market_info.nfts, nft_id);
                     let nft = Option::destroy_some(op_nft);
