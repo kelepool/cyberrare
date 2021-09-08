@@ -133,6 +133,7 @@ module Market {
         goods_id: u128,
         price: u128,
         quantity: u64,
+        bid_time: u64,
     }
 
     struct SettlementEvent has drop, store {
@@ -601,6 +602,7 @@ module Market {
             goods_id: goods_id,
             price: price,
             quantity: quantity,
+            bid_time: Timestamp::now_seconds(),
         });
     }
 

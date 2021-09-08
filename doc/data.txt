@@ -96,12 +96,13 @@ NFT:
 			"goods_id": 1,
 		    "nft_id": 0
 		}
-	3.出价事件:出价人,商品id,出价,数量
+	3.出价事件:出价人,商品id,出价,数量,出价时间
 		"decode_event_data": {
 			"bidder": "0xe6befcafafda3edb7294baf5311ccf0f",
 			"goods_id": 1,
 			"price": 12,
 			"quantity": 1
+			"bid_time": 1631087500
 		}
 	4.结算事件: 卖家,买家,商品id,NFT ID,单价,数量,结算时间
 		"decode_event_data": {
