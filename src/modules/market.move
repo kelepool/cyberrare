@@ -602,7 +602,7 @@ module Market {
             goods_id: goods_id,
             price: price,
             quantity: quantity,
-            bid_time: Timestamp::now_seconds(),
+            bid_time: now,
         });
     }
 
