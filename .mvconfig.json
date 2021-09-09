@@ -1,0 +1,5 @@
+{
+    "network": "dev",
+    "sender": "0x1",
+    "compilerDir": "build"
+}
