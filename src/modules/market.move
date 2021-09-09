@@ -494,6 +494,7 @@ module Market {
                 };
                 j = j + 1;
             };
+            j = 0;
             i = i + 1;
         };
     }
@@ -715,7 +716,7 @@ module MarketScript {
     }
 
     // public(script) fun test_put_on(sender: signer, end_time: u64) {
-    //     Market::put_on(&sender, b"test goods", 1, 10, 2, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 50, b"qq@qq.com",0);
+    //     Market::put_on(&sender, b"test goods", 1, 10, 5, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 9, b"qq@qq.com",0);
     // }
 
     // public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
