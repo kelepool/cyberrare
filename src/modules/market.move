@@ -727,12 +727,12 @@ module MarketScript {
         Market::upgrade(&sender);
     }
 
-    public(script) fun test_put_on(sender: signer, end_time: u64) {
-        Market::put_on(&sender, b"test goods", 1, 10, 5, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 9, b"qq@qq.com",0);
-    }
+    // public(script) fun test_put_on(sender: signer, end_time: u64) {
+    //     Market::put_on(&sender, b"test goods", 1, 10, 5, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 9, b"qq@qq.com",0);
+    // }
 
-    public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
-        Market::put_on_nft(&sender, nft_id, 15, 5, end_time, b"qq@qq.com",1);
-    }
+    // public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
+    //     Market::put_on_nft(&sender, nft_id, 15, 5, end_time, b"qq@qq.com",1);
+    // }
 }
 }
