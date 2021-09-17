@@ -169,7 +169,8 @@ module Market {
     public fun init(sender: &signer, cashier: address) {        
         let _addr = check_market_owner(sender);
         
-        NFT::register<GoodsNFTInfo, GoodsNFTInfo>(sender, empty_info(), NFT::empty_meta());
+        // NFT::register<GoodsNFTInfo, GoodsNFTInfo>(sender, empty_info(), NFT::empty_meta());
+        NFT::register_v2<GoodsNFTInfo>(sender, NFT::empty_meta());
         let mint_cap = NFT::remove_mint_capability<GoodsNFTInfo>(sender);
         let update_cap = NFT::remove_update_capability<GoodsNFTInfo>(sender);
         move_to(sender, GoodsNFTCapability{mint_cap, update_cap});
@@ -186,6 +187,13 @@ module Market {
             settlement_events: Event::new_event_handle<SettlementEvent>(sender),
             nfts: Vector::empty<NFT<GoodsNFTInfo, GoodsNFTBody>>(),
         });
+    }
+
+    public fun upgrade(sender: &signer) acquires GoodsNFTCapability {
+        let _addr = check_market_owner(sender);
+        let cap = borrow_global_mut<GoodsNFTCapability>(_addr);
+        NFT::upgrade_nft_type_info_from_v1_to_v2<GoodsNFTInfo, GoodsNFTInfo>(sender, &mut cap.mint_cap);
+        let _nft_info = NFT::remove_compat_info<GoodsNFTInfo, GoodsNFTInfo>(&mut cap.mint_cap);
     }
 
     fun mint_nft(creator: address, receiver: address, quantity: u64, base_meta: Metadata, type_meta: GoodsNFTInfo): u64 acquires GoodsNFTCapability {
@@ -715,12 +723,16 @@ module MarketScript {
         Market::set_lock(&sender, is_lock);
     }
 
-    // public(script) fun test_put_on(sender: signer, end_time: u64) {
-    //     Market::put_on(&sender, b"test goods", 1, 10, 5, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 9, b"qq@qq.com",0);
-    // }
+    public(script) fun upgrade(sender: signer) {
+        Market::upgrade(&sender);
+    }
 
-    // public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
-    //     Market::put_on_nft(&sender, nft_id, 12, 2, end_time, b"qq@qq.com");
-    // }
+    public(script) fun test_put_on(sender: signer, end_time: u64) {
+        Market::put_on(&sender, b"test goods", 1, 10, 5, b"http://baidu.com", b"http://baidu.com", b"desc desc", true, end_time, 9, b"qq@qq.com",0);
+    }
+
+    public(script) fun test_put_on_nft(sender: signer, nft_id: u64, end_time: u64) {
+        Market::put_on_nft(&sender, nft_id, 15, 5, end_time, b"qq@qq.com",1);
+    }
 }
 }

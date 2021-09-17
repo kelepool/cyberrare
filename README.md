@@ -32,3 +32,11 @@ state get resource 0xee9227f1b5922ba4e1cefcb1b6e3638f 0xee9227f1b5922ba4e1cefcb1
 ```
 state get resource 0xee9227f1b5922ba4e1cefcb1b6e3638f 0xee9227f1b5922ba4e1cefcb1b6e3638f::Market::GoodsBasket
 ```
+
+## 升级NFT合约
+```
+dev compile src/modules/market.move
+dev deploy -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f <path>/Market.mv
+dev deploy -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f <path>/MarketScript.mv
+account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::upgrade 
+```
