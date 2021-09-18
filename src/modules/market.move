@@ -1,4 +1,4 @@
-address 0xee9227f1b5922ba4e1cefcb1b6e3638f {
+address 0x2d32bee4f260694a0b3f1143c64a505a {
 // address 0x1 {
 module Market {
     use 0x1::Signer;
@@ -15,7 +15,7 @@ module Market {
     use 0x1::Vector;
     use 0x1::Option::{Self, Option};
 
-    const MARKET_ADDRESS: address = @0xee9227f1b5922ba4e1cefcb1b6e3638f;
+    const MARKET_ADDRESS: address = @0x2d32bee4f260694a0b3f1143c64a505a;
     // const MARKET_ADDRESS: address = @0x1;
 
     //The market is closed
@@ -685,40 +685,40 @@ module Market {
 }
 
 module MarketScript {
-    use 0xee9227f1b5922ba4e1cefcb1b6e3638f::Market;
+    use 0x2d32bee4f260694a0b3f1143c64a505a::Market;
 
-    //account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::init_market --arg 0xee9227f1b5922ba4e1cefcb1b6e3638f
+    //account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::init_market --arg 0x2d32bee4f260694a0b3f1143c64a505a
     public(script) fun init_market(account: signer, cashier: address) {
         Market::init(&account, cashier);
     }
 
-    //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::put_on --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::put_on --arg <...>
     public(script) fun put_on(account: signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>, original_goods_id: u128) {
         Market::put_on(&account, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail, original_goods_id);
     }
 
-    //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::put_on_nft --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::put_on_nft --arg <...>
     public(script) fun put_on_nft(sender: signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>, original_goods_id: u128) {
         Market::put_on_nft(&sender, nft_id, base_price, add_price, end_time, mail, original_goods_id);
     }
 
-    //account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::pull_off --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::pull_off --arg <...>
     public(script) fun pull_off(account: signer, goods_id: u128) {
         Market::pull_off(&account, goods_id);
     }
 
-    // account execute-function -b --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::bid --arg 0xee9227f1b5922ba4e1cefcb1b6e3638f 1u128 12u128 1u64
+    // account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::bid --arg 0x2d32bee4f260694a0b3f1143c64a505a 1u128 12u128 1u64
     // "gas_used": "344104"
     public(script) fun bid(account: signer, seller: address, goods_id: u128, price: u128, quantity: u64) {
         Market::bid(&account, seller, goods_id, price, quantity);
     }
 
-    // account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::settlement --arg 0xee9227f1b5922ba4e1cefcb1b6e3638f 1u128
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::settlement --arg 0x2d32bee4f260694a0b3f1143c64a505a 1u128
     public(script) fun settlement(sender: signer, seller: address, goods_id: u128) {
         Market::settlement(&sender, seller, goods_id);
     }
 
-    // account execute-function -b -s 0xee9227f1b5922ba4e1cefcb1b6e3638f --function 0xee9227f1b5922ba4e1cefcb1b6e3638f::MarketScript::set_lock --arg false
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::set_lock --arg false
     public(script) fun set_lock(sender: signer, is_lock: bool) {
         Market::set_lock(&sender, is_lock);
     }
