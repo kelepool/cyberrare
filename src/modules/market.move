@@ -575,7 +575,7 @@ module Market {
         let last_price = if(quantity <= goods.amount - goods.sell_amount) {
             goods.base_price
         } else {
-            get_bid_price(&goods.bid_list, goods.base_price, quantity)
+            get_bid_price(&goods.bid_list, goods.base_price, quantity - (goods.amount - goods.sell_amount))
         };
         assert(check_price(last_price, goods.add_price, price), Errors::invalid_argument(MARKET_INVALID_PRICE));
         //accept nft
