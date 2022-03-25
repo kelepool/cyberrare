@@ -1,24 +1,25 @@
-//assert(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
-//0x1e0c830eF929e530DDcfA8d79f758d09
-address 0x1e0c830eF929e530DDcfA8d79f758d09 {
+address 0x2d32bee4f260694a0b3f1143c64a505a {
 // address 0x1 {
 module Market {
-    use 0x1::Signer;
-    use 0x1::NFT::{Self, NFT, Metadata, MintCapability,BurnCapability, UpdateCapability};
-    use 0x1::NFTGallery;
+    use StarcoinFramework::Signer;
+    use StarcoinFramework::NFT::{Self, NFT, Metadata, MintCapability,BurnCapability, UpdateCapability};
+    use StarcoinFramework::NFTGallery;
     // use 0x1::CoreAddresses;
-    use 0x1::Account;
-    use 0x1::Timestamp;
+    use StarcoinFramework::Account;
+    use StarcoinFramework::Timestamp;
     // use 0x1::NFTGallery;
-    use 0x1::Token::{Self, Token};
-    use 0x1::STC::STC;
-    use 0x1::Event;
-    use 0x1::Errors;
-    use 0x1::Vector;
-    use 0x1::Option::{Self, Option};
+    use StarcoinFramework::Token::{Self, Token};
+    use StarcoinFramework::STC::STC;
+    use StarcoinFramework::Event;
+    use StarcoinFramework::Errors;
+    use StarcoinFramework::Vector;
+    use StarcoinFramework::Option::{Self, Option};
+    use StarcoinFramework::Signature;
+    use StarcoinFramework::BCS;
+    //use StarcoinFramework::Hash;
 
-    const MARKET_ADDRESS: address = @0x1e0c830eF929e530DDcfA8d79f758d09;
-    // const MARKET_ADDRESS: address = @0x1;
+    const MARKET_ADDRESS: address = @0x2d32bee4f260694a0b3f1143c64a505a;
+    const SIGNER_ADDRESS: vector<u8> = x"617f25cafa887a348503ac7a09a681e244c727dc0ef739eda7372e44f84577a9";
 
     //The market is closed
     const MARKET_LOCKED: u64 = 300;
@@ -224,11 +225,11 @@ module Market {
 
     public fun put_on_nft(sender: &signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>, original_goods_id: u128) acquires Market, GoodsNFTCapability, GoodsBasket {
         let op_nft = NFTGallery::withdraw<GoodsNFTInfo, GoodsNFTBody>(sender, nft_id);
-        assert(Option::is_some(&op_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));
+        assert!(Option::is_some(&op_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));
 
         let nft = Option::destroy_some(op_nft);
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
         // add goods count
         market_info.counter = market_info.counter + 1;
         // create goods
@@ -289,7 +290,7 @@ module Market {
     public fun put_on(sender: &signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>, original_goods_id: u128) acquires Market, GoodsBasket {
         // save counter
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         market_info.counter = market_info.counter + 1;
         let meta = NFT::new_meta_with_image(title, image, desc);
@@ -412,7 +413,7 @@ module Market {
 
     fun borrow_goods(list: &mut vector<Goods>, goods_id: u128): &mut Goods {
         let index = find_index_by_id(list, goods_id);
-        assert(Option::is_some(&index), Errors::invalid_argument(MARKET_INVALID_INDEX));
+        assert!(Option::is_some(&index), Errors::invalid_argument(MARKET_INVALID_INDEX));
         let i = Option::extract(&mut index);
         Vector::borrow_mut<Goods>(list, i)
     }
@@ -474,7 +475,7 @@ module Market {
 
     public fun pull_off(sender: &signer, goods_id: u128) acquires Market, GoodsBasket {
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         let owner = Signer::address_of(sender);
         market_pull_off(owner, goods_id);
@@ -564,23 +565,23 @@ module Market {
 
     public fun bid(sender: &signer, seller: address, goods_id: u128, price: u128, quantity: u64) acquires Market, GoodsBasket {
         let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         let sender_addr = Signer::address_of(sender);
         let basket = borrow_global_mut<GoodsBasket>(seller);
         let goods = borrow_goods(&mut basket.items, goods_id);
         if(goods.nft_id > 0) {
-            assert(quantity == goods.amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+            assert!(quantity == goods.amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
         };
         let now = Timestamp::now_seconds();
-        assert(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
-        assert(quantity > 0 && quantity <= goods.amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+        assert!(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
+        assert!(quantity > 0 && quantity <= goods.amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
         let last_price = if(quantity <= goods.amount - goods.sell_amount) {
             goods.base_price
         } else {
             get_bid_price(&goods.bid_list, goods.base_price, quantity)
         };
-        assert(check_price(last_price, goods.add_price, price), Errors::invalid_argument(MARKET_INVALID_PRICE));
+        assert!(check_price(last_price, goods.add_price, price), Errors::invalid_argument(MARKET_INVALID_PRICE));
         //accept nft
         NFTGallery::accept<GoodsNFTInfo, GoodsNFTBody>(sender);
         //save state
@@ -629,7 +630,7 @@ module Market {
         let basket = borrow_global_mut<GoodsBasket>(seller);
         let g = borrow_goods(&mut basket.items, goods_id);
         let now = Timestamp::now_seconds();
-        assert(now >= g.end_time, Errors::invalid_state(MARKET_NOT_OVER));
+        assert!(now >= g.end_time, Errors::invalid_state(MARKET_NOT_OVER));
         let len = Vector::length(&g.bid_list);
         if(len > 0) {
             let market_info = borrow_global_mut<Market>(MARKET_ADDRESS);
@@ -682,7 +683,7 @@ module Market {
 
     fun check_market_owner(sender: &signer): address {
         let addr = Signer::address_of(sender);
-        assert(addr == MARKET_ADDRESS, Errors::invalid_argument(1000));
+        assert!(addr == MARKET_ADDRESS, Errors::invalid_argument(1000));
         addr
     }
 
@@ -699,6 +700,17 @@ module Market {
     const MARKET_INVALID_PACKAGES:u64 = 307;
     const MARKET_INVALID_SELL_WAY:u64 = 308;
     const MARKET_INVALID_BUYER:u64 = 309;
+    const STAKE_NFT_ERROR_COUNT:u64 = 310;
+    const STAKE_NFT_ERROR_INDEX:u64 = 311;
+    const STAKE_ERROR_NFT_KIND:u64 = 312;
+    const STAKE_ERROR_NFT_PACKAGES:u64 = 313;
+    const STAKE_NFT_ERROR_AMOUNT:u64 = 314;
+    const STAKE_NFT_ERROR_NONCE:u64 = 315;
+    const STAKE_NFT_ERROR_SIGNATURE:u64 = 316;
+    const STAKE_NFT_ERROR_POWER:u64 = 317;
+    const STAKE_NFT_ERROR_SIGNER:u64 = 318;
+    const STAKE_NFT_ERROR_KIND:u64 = 319;
+    const MARKET_ERROR_EXTENSIONS:u64 = 320;
 
     // sell way = buy now
     const DICT_TYPE_SELL_WAY_BUY_NOW: u64 = 1801;
@@ -762,7 +774,7 @@ module Market {
     }
 
     // events
-    struct EventV2<T:drop + store> has key,store{
+    struct EventV2<phantom T:drop + store> has key,store{
         events: Event::EventHandle<T>,
     }
 
@@ -1071,45 +1083,475 @@ module Market {
         method:u64,
     }
 
-    // // pool
-    // struct StakingPoolV2 has key, store{
-    //     // staking nft count
-    //     counter: u64,
-    //     // share per power
-    //     share: u128,
-    //     // staking limit count
-    //     limit:u64,
-    //     // ratio in market fee
-    //     ratio: u64,
-    //     // total bonus
-    //     bonus: Token<STC>,
-    //     // total power
-    //     power: u128,
-    //     // bonus period
-    //     period:u64
-    // }
+    // pool
+    struct StakingPoolV2 has key, store{
+        // total nft count
+        counter: u64,
+        // staking limit count
+        limit:u64,
+        // total jackpot
+        jackpot: Token<STC>,
+        // total power
+        power: u64,
+        // share per power
+        share: u128,
+        // timestamp
+        time:u64,
+        // boxes
+        packages:vector<vector<u8>>,
+        // fee rate
+        fee_rate:u128
+    }
 
-    // // nft staking house
-    // struct StakingNftV2 has key,store{
-    //     nfts: vector<NFT<GoodsNFTInfoV2, GoodsNFTBodyV2>>,
-    // }
+    // nft staking house
+    struct StakingNftV2 has key,store{
+        nfts: vector<NFT<GoodsNFTInfoV2, GoodsNFTBodyV2>>,
+    }
 
-    // // nft staking basket
-    // struct StakingBasketV2 has key,store{
-    //     // user total power
-    //     power: u128,
-    //     // user debt
-    //     debt: u128,
-    //     // user staking nft ids
-    //     items: vector<u64>,
-    //     // user reward
-    //     reward: Token<STC>,
-    //     // verify unchain signature
-    //     nonce:u128,
-    // }
+    // nft staking user
+    struct StakingUserV2 has key,store{
+        // user total power
+        power: u64,
+        // user debt
+        debt: u128,
+        // user staking nft ids
+        items: vector<StakingUserItemV2>,
+        // verify unchain signature
+        nonce:u64,
+        // total reward
+        reward: Token<STC>,
+    }
 
-    // staking_deposit_nft, staking_withdraw_nft, staking_extract_reward, staking_recharge
-    // staking_calculate
+    // nft staking user item
+    struct StakingUserItemV2 has key,store,drop{
+        nft_id:u64,
+        time:u64,
+    }
+
+    // deposit nft event
+    struct StakingDepositEventV2 has drop, store {
+        owner: address,
+        nft_id: u64,
+        time:u64,
+        nft_base_meta: Metadata,
+        nft_type_meta: GoodsNFTInfoV2,
+        pool_power:u64,
+        pool_amount:u128,
+    }
+
+    // withdraw nft event
+    struct StakingWithdrawEventV2 has drop, store {
+        owner: address,
+        nft_id: u64,
+        time:u64,
+        nft_base_meta: Metadata,
+        nft_type_meta: GoodsNFTInfoV2,
+        pool_power:u64,
+        pool_amount:u128,
+        start_time:u64,
+    }
+
+    // reward event
+    struct StakingRewardEventV2 has drop, store {
+        owner: address,
+        amount: u128,
+        nonce: u64,
+        time:u64,
+        signature:vector<u8>,
+        pool_power:u64,
+        pool_amount:u128,
+    }
+
+    // recharge event
+    struct StakingRechargeEventV2 has drop, store {
+        owner: address,
+        amount: u128,
+        time:u64,
+        pool_power:u64,
+        pool_amount:u128,
+    }
+
+    // exchange event
+    struct StakingExchangeEventV2 has drop, store {
+        owner: address,
+        old_nft_id:u64,
+        old_nft_base_meta: Metadata,
+        old_nft_type_meta: GoodsNFTInfoV2,
+        new_nft_id:u64,
+        new_nft_base_meta: Metadata,
+        new_nft_type_meta: GoodsNFTInfoV2,
+        time:u64,
+    }
+
+    fun lshift_u128(x: u128, n: u8): u128 {
+        (x << n)
+    }
+
+    public fun find_user_nft_index_by_id_v2(v: &vector<StakingUserItemV2>, nft_id: u64): Option<u64>{
+        let len = Vector::length(v);
+        if (len == 0) {
+            return Option::none()
+        };
+        let index = len - 1;
+        loop {
+            let nft = Vector::borrow(v, index);
+            if (nft.nft_id == nft_id) {
+                return Option::some(index)
+            };
+            if (index == 0) {
+                return Option::none()
+            };
+            index = index - 1;
+        }
+    }
+
+    public fun staking_deposit_v2(sender: &signer, nft_id: u64) acquires StakingPoolV2,StakingNftV2,EventV2,StakingUserV2 {
+
+        let owner = Signer::address_of(sender);
+        let new_nft = NFTGallery::withdraw<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender, nft_id);    
+        assert!(Option::is_some(&new_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));    
+
+        let nft = Option::destroy_some(new_nft);
+        let nft_info = NFT::get_info<GoodsNFTInfoV2, GoodsNFTBodyV2>(&nft);
+        let (nft_id, _, base_meta, type_meta) = NFT::unpack_info<GoodsNFTInfoV2>(nft_info);
+        assert!(type_meta.power>0 && type_meta.kind==1, Errors::invalid_argument(STAKE_NFT_ERROR_KIND));
+
+        // create user info
+        let bm = copy base_meta;
+        let tm = copy type_meta;
+        let stake_item = StakingUserItemV2{
+            nft_id:nft_id,
+            time:Timestamp::now_seconds()
+        };
+
+        // change pool info
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        pool_info.power = pool_info.power + tm.power;
+        pool_info.counter = pool_info.counter + 1;
+        
+        if (!exists<StakingUserV2>(owner)) {
+            let stake_items = Vector::empty<StakingUserItemV2>();
+            Vector::push_back(&mut stake_items, stake_item);
+            let user_info = StakingUserV2 {
+                // user total power
+                power: tm.power,
+                // user debt
+                debt: 0,
+                // user staking nft ids
+                items: stake_items,
+                // verify unchain signature
+                nonce:0,
+                // reward
+                reward:Token::zero<STC>()
+            };
+            move_to(sender, user_info);
+        }else{
+            let user_info = borrow_global_mut<StakingUserV2>(owner);
+            assert!(Vector::length(&user_info.items) < pool_info.limit, Errors::invalid_argument(STAKE_NFT_ERROR_COUNT));
+
+            user_info.power = user_info.power + tm.power;
+            Vector::push_back(&mut user_info.items, stake_item);
+        };
+
+        // deposit nft to stake
+        let stake_house = borrow_global_mut<StakingNftV2>(MARKET_ADDRESS);
+        deposit_nft_v2(&mut stake_house.nfts, nft);
+
+        // do emit event
+        let stake_deposit_event = borrow_global_mut<EventV2<StakingDepositEventV2>>(MARKET_ADDRESS);
+        Event::emit_event(&mut stake_deposit_event.events, StakingDepositEventV2{
+            owner: owner,
+            nft_id: nft_id,
+            time: Timestamp::now_seconds(),
+            nft_base_meta: bm,
+            nft_type_meta: tm,
+            pool_power:pool_info.power,
+            pool_amount:Token::value(&pool_info.jackpot)
+        });
+    }
+
+    public fun staking_withdraw_v2(sender: &signer, nft_id: u64) acquires StakingPoolV2,StakingNftV2,EventV2,StakingUserV2,GoodsNFTNewCapabilityV2 {
+
+        // get user info
+        let owner = Signer::address_of(sender);
+        let user_info = borrow_global_mut<StakingUserV2>(owner);
+        assert!(Vector::length(&user_info.items) > 0, Errors::invalid_argument(STAKE_NFT_ERROR_COUNT));
+
+        // get nft item
+        let nft_index = find_user_nft_index_by_id_v2(&user_info.items, nft_id);
+        assert!(Option::is_some(&nft_index), Errors::invalid_argument(STAKE_NFT_ERROR_INDEX));
+        let item_index = Option::extract(&mut nft_index);
+        let user_item = Vector::remove<StakingUserItemV2>(&mut user_info.items, item_index);
+
+        // get nft info
+        let stake_house = borrow_global_mut<StakingNftV2>(MARKET_ADDRESS);
+        let stake_nft = withdraw_nft_v2(&mut stake_house.nfts, nft_id);
+        let my_nft = Option::destroy_some(stake_nft);
+
+        //assert!(nft_id==0,Errors::invalid_argument(SYSTEM_ERROR_TEST));
+
+        // change stake time
+        let my_cap = borrow_global_mut<GoodsNFTNewCapabilityV2>(MARKET_ADDRESS);
+        let my_nft_info = NFT::get_info<GoodsNFTInfoV2, GoodsNFTBodyV2>(&my_nft);
+        let (_my_nft_id, _, my_base_meta, my_type_meta) = NFT::unpack_info<GoodsNFTInfoV2>(my_nft_info);
+        my_type_meta.running = my_type_meta.running + (Timestamp::now_seconds() - user_item.time);
+        NFT::update_meta_with_cap(&mut my_cap.update_cap, &mut my_nft,copy my_base_meta,copy my_type_meta);
+
+        // change pool,user info
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        pool_info.power = pool_info.power - my_type_meta.power;
+        pool_info.counter = pool_info.counter - 1;
+        user_info.power = user_info.power - my_type_meta.power;
+
+        // deposit nft to user
+        let bm = copy my_base_meta;
+        let tm = copy my_type_meta;
+        NFTGallery::deposit_to<GoodsNFTInfoV2, GoodsNFTBodyV2>(owner, my_nft);
+
+        // do emit event
+        let stake_withdraw_event = borrow_global_mut<EventV2<StakingWithdrawEventV2>>(MARKET_ADDRESS);
+        Event::emit_event(&mut stake_withdraw_event.events, StakingWithdrawEventV2{
+            owner: owner,
+            nft_id: nft_id,
+            time: Timestamp::now_seconds(),
+            nft_base_meta: bm,
+            nft_type_meta: tm,
+            pool_power:pool_info.power,
+            pool_amount:Token::value(&pool_info.jackpot),
+            start_time:user_item.time,
+        });
+    }
+
+    public fun staking_reward_v2(sender: &signer, amount: u128, nonce:u64, signature:vector<u8>) acquires StakingPoolV2,EventV2,StakingUserV2 {
+
+        let owner = Signer::address_of(sender);
+        assert!(amount>0, Errors::invalid_argument(STAKE_NFT_ERROR_AMOUNT));
+        assert!(nonce>0, Errors::invalid_argument(STAKE_NFT_ERROR_NONCE));
+        assert!(Vector::length(&signature)>0, Errors::invalid_argument(STAKE_NFT_ERROR_SIGNATURE));
+
+        let user_info = borrow_global_mut<StakingUserV2>(owner);
+        assert!(nonce > user_info.nonce, Errors::invalid_argument(STAKE_NFT_ERROR_NONCE));
+
+        let message = Vector::empty<u8>();
+        let owner_bytes = BCS::to_bytes(&owner);
+        let amount_bytes = BCS::to_bytes(&amount);
+        let nonce_bytes = BCS::to_bytes(&nonce);
+        Vector::append(&mut message,copy owner_bytes);
+        Vector::append(&mut message,copy amount_bytes);
+        Vector::append(&mut message,copy nonce_bytes);
+
+        let check = Signature::ed25519_verify(copy signature, SIGNER_ADDRESS, copy message);
+        assert!(check==true, Errors::invalid_argument(STAKE_NFT_ERROR_SIGNER));
+
+        //assert!(amount==0,Errors::invalid_argument(SYSTEM_ERROR_TEST));
+
+        // withdraw stc
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        let tokens = Token::withdraw<STC>(&mut pool_info.jackpot, amount);
+        user_info.nonce = nonce;
+        Account::deposit(owner, tokens);
+
+        // do emit event
+        let stake_reward_event = borrow_global_mut<EventV2<StakingRewardEventV2>>(MARKET_ADDRESS);
+        Event::emit_event(&mut stake_reward_event.events, StakingRewardEventV2{
+            owner:  owner,
+            amount: amount,
+            nonce: nonce,
+            time: Timestamp::now_seconds(),
+            signature:signature,
+            pool_power:pool_info.power,
+            pool_amount:Token::value(&pool_info.jackpot),
+        });
+    }
+
+    public fun staking_recharge_v2(sender: &signer, amount: u128) acquires EventV2,StakingPoolV2{
+
+        // deposit stc
+        let owner = Signer::address_of(sender);
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        let tokens = Account::withdraw<STC>(sender, amount);
+        Token::deposit(&mut pool_info.jackpot, tokens);
+
+        // do emit event
+        let exchange_nft_event = borrow_global_mut<EventV2<StakingRechargeEventV2>>(MARKET_ADDRESS);
+        Event::emit_event(&mut exchange_nft_event.events, StakingRechargeEventV2{
+            owner: owner,
+            amount: amount,
+            time: Timestamp::now_seconds(),
+            pool_power:pool_info.power,
+            pool_amount:Token::value(&pool_info.jackpot),
+        });
+    }
+
+    public fun staking_exchange_v2(sender: &signer, nft_id: u64) acquires GoodsNFTNewCapabilityV2,EventV2,StakingPoolV2,IdentityV2 {
+
+        // check old nft
+        let owner = Signer::address_of(sender);
+        let get_old_nft = NFTGallery::withdraw<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender, nft_id);
+        assert!(Option::is_some(&get_old_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));  
+
+        // get old nft
+        let old_nft = Option::destroy_some(get_old_nft);
+        let old_nft_info = NFT::get_info<GoodsNFTInfoV2, GoodsNFTBodyV2>(&old_nft);
+        let (_old_nft_id, _, old_base_meta, old_type_meta) = NFT::unpack_info<GoodsNFTInfoV2>(old_nft_info);
+        let nft_power = *&old_type_meta.power;
+        let nft_kind = *&old_type_meta.kind;
+        let old_nft_base_meta = copy old_base_meta;
+        let old_nft_type_meta = copy old_type_meta;
+        assert!(nft_kind==0 && nft_power>0, Errors::invalid_argument(STAKE_ERROR_NFT_KIND));
+
+        // check packages list
+        let now = Timestamp::now_milliseconds();
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        let count = Vector::length(&pool_info.packages);
+        assert!(count>0, Errors::invalid_argument(STAKE_ERROR_NFT_PACKAGES));
+
+        // get random image
+        let image = Vector::remove<vector<u8>>(&mut pool_info.packages, (now % count));
+        let identity = borrow_global_mut<IdentityV2>(MARKET_ADDRESS);
+        identity.id = identity.id +1;
+
+        //assert!(nft_id==0,Errors::invalid_argument(SYSTEM_ERROR_TEST));
+
+        // create new nft
+        let new_cap = borrow_global_mut<GoodsNFTNewCapabilityV2>(MARKET_ADDRESS);
+        let new_base_meta = NFT::new_meta_with_image(NFT::meta_name(&old_base_meta), copy image, NFT::meta_description(&old_base_meta));
+        let new_type_meta = GoodsNFTInfoV2{has_in_kind:*&old_type_meta.has_in_kind, type:*&old_type_meta.type, resource_url:image, rarity:*&old_type_meta.rarity, power:*&old_type_meta.power, period:*&old_type_meta.period,damping:*&old_type_meta.damping,running:*&old_type_meta.running,kind:1, gtype:DICT_TYPE_CATEGORY_GOODS, is_open:*&old_type_meta.is_open,is_official:*&old_type_meta.is_official, main_nft_id:identity.id,tags:*&old_type_meta.tags, packages:*&old_type_meta.packages ,extensions:*&old_type_meta.extensions};
+        let new_nft = NFT::mint_with_cap<GoodsNFTInfoV2, GoodsNFTBodyV2, GoodsNFTInfoV2>(MARKET_ADDRESS, &mut new_cap.mint_cap, copy new_base_meta, copy new_type_meta, GoodsNFTBodyV2{quantity:1});
+        let new_nft_id = NFT::get_id(&new_nft);
+
+        // burn old nft
+        let GoodsNFTBodyV2{ quantity:_ } = NFT::burn_with_cap(&mut new_cap.burn_cap,old_nft);
+
+        // deposit new nft to user
+        NFTGallery::deposit_to<GoodsNFTInfoV2, GoodsNFTBodyV2>(owner, new_nft);
+
+        // do emit event
+        let exchange_nft_event = borrow_global_mut<EventV2<StakingExchangeEventV2>>(MARKET_ADDRESS);
+        Event::emit_event(&mut exchange_nft_event.events, StakingExchangeEventV2{
+            owner: owner,
+            old_nft_id: nft_id,
+            old_nft_base_meta: old_nft_base_meta,
+            old_nft_type_meta: old_nft_type_meta,
+            new_nft_id:new_nft_id,
+            new_nft_base_meta: new_base_meta,
+            new_nft_type_meta: new_type_meta,
+            time:Timestamp::now_seconds(),
+        });
+
+    }
+
+    // add exchange packages
+    public fun staking_add_exchange_v2(sender: &signer,packages:vector<vector<u8>>) acquires PartnerV2,StakingPoolV2{
+
+        let owner = Signer::address_of(sender);
+        assert!(check_partner_exist(owner)==true,Errors::invalid_argument(1000));
+        
+        let i = 0u64;
+        let len = Vector::length(&packages);
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        while(i < len){
+            let package = *Vector::borrow(&packages,i);
+            Vector::push_back(&mut pool_info.packages, package);
+            i=i+1;
+        };
+    }
+
+    // add exchange packages
+    public fun staking_clean_exchange_v2(sender: &signer) acquires PartnerV2,StakingPoolV2{
+
+        let owner = Signer::address_of(sender);
+        assert!(check_partner_exist(owner)==true,Errors::invalid_argument(1000));
+        
+        let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+        pool_info.packages = Vector::empty<vector<u8>>()
+    }
+
+    // get market extensions
+    fun get_market_extensions(index:u64):u128 acquires MarketV2 {
+        let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
+        let count = Vector::length(&market_info.extensions);
+        assert!(index < count,Errors::invalid_argument(MARKET_ERROR_EXTENSIONS));
+        let info = *Vector::borrow(&market_info.extensions,index);
+        info.value
+    }
+
+    // set market extensions
+    fun set_market_extensions(index:u64,value:u128,summation:bool) acquires MarketV2 {
+        let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
+        let count = Vector::length(&market_info.extensions);
+        assert!(index < count,Errors::invalid_argument(MARKET_ERROR_EXTENSIONS));
+        let info = Vector::borrow_mut<ExtenstionV2>(&mut market_info.extensions,index);
+        info.item = index;
+        if(summation){
+            info.value = info.value + value;
+        }else{
+            info.value = value;
+        };
+    }
+
+    // init staking
+    public fun init_staking_v2(sender: &signer) {       
+
+        check_market_owner_v2(sender);
+
+        // init StakingDepositEventV2 event
+        move_to<EventV2<StakingDepositEventV2>>(sender,EventV2<StakingDepositEventV2>{
+            events:Event::new_event_handle<StakingDepositEventV2>(sender),
+        });
+
+        // init StakingWithdrawEventV2 event
+        move_to<EventV2<StakingWithdrawEventV2>>(sender,EventV2<StakingWithdrawEventV2>{
+            events:Event::new_event_handle<StakingWithdrawEventV2>(sender),
+        });
+
+        // init StakingRewardEventV2 event
+        move_to<EventV2<StakingRewardEventV2>>(sender,EventV2<StakingRewardEventV2>{
+            events:Event::new_event_handle<StakingRewardEventV2>(sender),
+        });
+
+        // init StakingRechargeEventV2 event
+        move_to<EventV2<StakingRechargeEventV2>>(sender,EventV2<StakingRechargeEventV2>{
+            events:Event::new_event_handle<StakingRechargeEventV2>(sender),
+        });
+
+        // init StakingExchangeEventV2 event
+        move_to<EventV2<StakingExchangeEventV2>>(sender,EventV2<StakingExchangeEventV2>{
+            events:Event::new_event_handle<StakingExchangeEventV2>(sender),
+        });
+
+        // init pool
+        let packages = Vector::empty<vector<u8>>();
+        move_to<StakingPoolV2>(sender, StakingPoolV2{
+            // total nft count
+            counter: 0,
+            // staking limit count
+            limit: 6,
+            // total jackpot
+            jackpot: Token::zero<STC>(),
+            // total power
+            power: 0,
+            // share per power
+            share: 0,
+            // timestamp
+            time:0,
+            // packages
+            packages:packages,
+            // fee rate
+            fee_rate:10
+        });
+
+        // init staking store
+        move_to<StakingNftV2>(sender,StakingNftV2{
+            nfts:Vector::empty<NFT<GoodsNFTInfoV2, GoodsNFTBodyV2>>()
+        });
+
+        // init staking jackpot
+        // let extensions = Vector::empty<ExtenstionV2>();
+        // let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
+        // Vector::push_back(&mut extensions, ExtenstionV2{ item:0,value:0 });
+        // market_info.extensions = extensions;
+    }
 
     public fun create_test_data_v2(sender: &signer) acquires IdentityV2,GoodsNFTCapability,GoodsNFTNewCapabilityV2 {
 
@@ -1118,7 +1560,7 @@ module Market {
         // create old nft
          NFTGallery::accept<GoodsNFTInfo, GoodsNFTBody>(sender);
         let old_cap = borrow_global_mut<GoodsNFTCapability>(MARKET_ADDRESS);
-        let old_meta = NFT::new_meta_with_image(b"Cyberrare", b"", b"Cyberrare V1");
+        let old_meta = NFT::new_meta_with_image(b"Cyberrare", b"https://www.cyberrare.io/v1.png", b"Cyberrare V1");
         let old_type_meta = GoodsNFTInfo{ has_in_kind:false , type:0u64, resource_url:b"", mail:b""};
         let old_nft = NFT::mint_with_cap<GoodsNFTInfo, GoodsNFTBody, GoodsNFTInfo>(sender_addr, &mut old_cap.mint_cap, old_meta, old_type_meta, GoodsNFTBody{quantity:1});
         NFTGallery::deposit_to(sender_addr, old_nft);
@@ -1128,10 +1570,18 @@ module Market {
         identity.id = identity.id + 1;
          NFTGallery::accept<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender);
         let new_cap = borrow_global_mut<GoodsNFTNewCapabilityV2>(MARKET_ADDRESS);
-        let new_meta = NFT::new_meta_with_image(b"Cyberrare", b"", b"Cyberrare V2");
-        let new_type_meta = GoodsNFTInfoV2{ has_in_kind:false , type:0u64, resource_url:b"", rarity:0, power:0, period:0 ,damping:0, running:0,kind:0,gtype:DICT_TYPE_CATEGORY_GOODS,is_open:false,is_official:false,main_nft_id:identity.id,tags:Vector::empty<u8>(),packages:Vector::empty<PackageV2>(),extensions:Vector::empty<ExtenstionV2>()};
+        let new_meta = NFT::new_meta_with_image(b"Cyberrare", b"https://www.cyberrare.io/v1.png", b"Cyberrare V2");
+        let new_type_meta = GoodsNFTInfoV2{ has_in_kind:false , type:0u64, resource_url:b"", rarity:0, power:50, period:0 ,damping:0, running:0,kind:0,gtype:DICT_TYPE_CATEGORY_GOODS,is_open:false,is_official:false,main_nft_id:identity.id,tags:Vector::empty<u8>(),packages:Vector::empty<PackageV2>(),extensions:Vector::empty<ExtenstionV2>()};
         let new_nft = NFT::mint_with_cap<GoodsNFTInfoV2, GoodsNFTBodyV2, GoodsNFTInfoV2>(sender_addr, &mut new_cap.mint_cap, new_meta, new_type_meta, GoodsNFTBodyV2{quantity:1});
         NFTGallery::deposit_to(sender_addr, new_nft);
+
+        // create staking nft
+        identity.id = identity.id + 1;
+        let new_cap2 = borrow_global_mut<GoodsNFTNewCapabilityV2>(MARKET_ADDRESS);
+        let new_meta2 = NFT::new_meta_with_image(b"Cyberrare", b"https://www.cyberrare.io/v2.png", b"Cyberrare V3");
+        let new_type_meta2 = GoodsNFTInfoV2{ has_in_kind:false , type:0u64, resource_url:b"", rarity:0, power:75, period:0 ,damping:0, running:0,kind:1,gtype:DICT_TYPE_CATEGORY_GOODS,is_open:false,is_official:false,main_nft_id:identity.id,tags:Vector::empty<u8>(),packages:Vector::empty<PackageV2>(),extensions:Vector::empty<ExtenstionV2>()};
+        let new_nft2 = NFT::mint_with_cap<GoodsNFTInfoV2, GoodsNFTBodyV2, GoodsNFTInfoV2>(sender_addr, &mut new_cap2.mint_cap, new_meta2, new_type_meta2, GoodsNFTBodyV2{quantity:1});
+        NFTGallery::deposit_to(sender_addr, new_nft2);
     }
 
     fun get_packages_v2(packages: vector<vector<u8>>,package_types:vector<u64>):vector<PackageV2> {
@@ -1200,7 +1650,7 @@ module Market {
 
     fun borrow_goods_v2(list: &mut vector<GoodsV2>, goods_id: u128): &mut GoodsV2 {
         let index = find_index_by_id_v2(list, goods_id);
-        assert(Option::is_some(&index), Errors::invalid_argument(MARKET_INVALID_INDEX));
+        assert!(Option::is_some(&index), Errors::invalid_argument(MARKET_INVALID_INDEX));
         let i = Option::extract(&mut index);
         Vector::borrow_mut<GoodsV2>(list, i)
     }
@@ -1367,7 +1817,7 @@ module Market {
 
     public fun pull_off_v2(sender: &signer, goods_id: u128) acquires EventV2,MarketV2,StorehouseV2, GoodsBasketV2 {
         let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         NFTGallery::accept<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender);
         
@@ -1379,7 +1829,7 @@ module Market {
         
         // get nft info
         let new_nft = NFTGallery::withdraw<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender, nft_id);    
-        assert(Option::is_some(&new_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));    
+        assert!(Option::is_some(&new_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));    
 
         let nft = Option::destroy_some(new_nft);
         let cap = borrow_global_mut<GoodsNFTNewCapabilityV2>(MARKET_ADDRESS);
@@ -1489,7 +1939,7 @@ module Market {
         // get old nft 
         let owner = Signer::address_of(sender);
         let get_old_nft = NFTGallery::withdraw<GoodsNFTInfo, GoodsNFTBody>(sender, nft_id);
-        assert(Option::is_some(&get_old_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));  
+        assert!(Option::is_some(&get_old_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));  
 
         let old_cap = borrow_global_mut<GoodsNFTCapability>(MARKET_ADDRESS);
         let old_nft = Option::destroy_some(get_old_nft);
@@ -1650,7 +2100,7 @@ module Market {
         // get old nft 
         let owner = Signer::address_of(sender);
         let get_old_nft = NFTGallery::withdraw<GoodsNFTInfo, GoodsNFTBody>(sender, nft_id);
-        assert(Option::is_some(&get_old_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));  
+        assert!(Option::is_some(&get_old_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));  
 
         let old_cap = borrow_global_mut<GoodsNFTCapability>(MARKET_ADDRESS);
         let old_nft = Option::destroy_some(get_old_nft);
@@ -1742,7 +2192,7 @@ module Market {
         move_to<EventV2<SettlementEventV2>>(sender,EventV2<SettlementEventV2>{
             events:Event::new_event_handle<SettlementEventV2>(sender),
         });
-        
+
         // init market
         move_to<MarketV2>(sender, MarketV2{
             counter: 10000,
@@ -1810,7 +2260,7 @@ module Market {
         check_market_owner_v2(sender);
         
         let owner = Signer::address_of(sender);
-        assert(check_partner_exist(partner)==false,Errors::invalid_argument(1000));
+        assert!(check_partner_exist(partner)==false,Errors::invalid_argument(1000));
 
         let partners = borrow_global_mut<PartnerV2>(MARKET_ADDRESS);
         Vector::push_back(&mut partners.members,PartnerItemV2{
@@ -1863,26 +2313,26 @@ module Market {
         let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
         let package_count = Vector::length(&packages);
         let package_type_count = Vector::length(&package_types);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
-        assert(amount>0 && amount <= ARG_MAX_BID, Errors::invalid_argument(MARKET_INVALID_NFT_AMOUNT));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(amount>0 && amount <= ARG_MAX_BID, Errors::invalid_argument(MARKET_INVALID_NFT_AMOUNT));
 
         // the amount must be equal package_count when boxes
         if(gtype == DICT_TYPE_CATEGORY_BOXES){
-            assert(package_count==package_type_count,Errors::invalid_argument(MARKET_INVALID_PACKAGES));
-            assert(amount == package_count, Errors::invalid_argument(MARKET_INVALID_NFT_AMOUNT));
+            assert!(package_count==package_type_count,Errors::invalid_argument(MARKET_INVALID_PACKAGES));
+            assert!(amount == package_count, Errors::invalid_argument(MARKET_INVALID_NFT_AMOUNT));
         }else{
-            assert(package_count==0 && package_type_count==0,Errors::invalid_argument(MARKET_INVALID_PACKAGES));
+            assert!(package_count==0 && package_type_count==0,Errors::invalid_argument(MARKET_INVALID_PACKAGES));
         };
 
         if(sell_way==DICT_TYPE_SELL_WAY_BUY_NOW){
-            assert(fixed_price>0 && base_price==0 && add_price==0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price>0 && base_price==0 && add_price==0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         }else if(sell_way==DICT_TYPE_SELL_WAY_BID){
-            assert(fixed_price==0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price==0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         }else if(sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID){
-            assert(fixed_price>0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
-            assert(fixed_price>base_price,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price>0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price>base_price,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         }else{
-            assert(false,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(false,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         };
 
         market_info.counter = market_info.counter + 1;
@@ -1987,20 +2437,20 @@ module Market {
         
         // check lock
         let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         NFTGallery::accept<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender);
 
         // check sell way
         if(sell_way==DICT_TYPE_SELL_WAY_BUY_NOW){
-            assert(fixed_price>0 && base_price==0 && add_price==0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price>0 && base_price==0 && add_price==0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         }else if(sell_way==DICT_TYPE_SELL_WAY_BID){
-            assert(fixed_price==0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price==0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         }else if(sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID){
-            assert(fixed_price>0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
-            assert(fixed_price>base_price,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price>0 && base_price>0 && add_price>0 && end_time>0,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(fixed_price>base_price,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         }else{
-            assert(false,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+            assert!(false,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         };
 
         if(version==1){
@@ -2008,36 +2458,9 @@ module Market {
         }else if(version==2){
             put_on_nft_new_v2(sender,nft_id,sell_way,fixed_price,tags,base_price,add_price,end_time,original_goods_id);
         }else{
-            assert(false, Errors::invalid_argument(MARKET_INVALID_NFT_ID));
+            assert!(false, Errors::invalid_argument(MARKET_INVALID_NFT_ID));
         }
 
-        // exchange nft
-        // let sender_addr = Signer::address_of(sender);
-        // let new_nft_info = NFTGallery::get_nft_info_by_id<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender_addr,nft_id);
-        // let old_nft_info = NFTGallery::get_nft_info_by_id<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender_addr,nft_id);
-        // if(Option::is_some(&old_nft_info)){
-        //     put_on_nft_old_v2(sender,nft_id,sell_way,fixed_price,tags,base_price,add_price,end_time,original_goods_id);
-        // }else if(Option::is_some(&new_nft_info)){
-        //     put_on_nft_new_v2(sender,nft_id,sell_way,fixed_price,tags,base_price,add_price,end_time,original_goods_id);
-        // }else {
-        //     assert(false, Errors::invalid_argument(MARKET_INVALID_NFT_ID));
-        // }
-
-    }
-
-    fun get_hex_vector(number:u8):vector<u8>{
-        let data = Vector::empty<u8>();
-        while(number!=0) {
-            let temp = number % 10;
-            if( temp < 10){
-                temp = temp + 48;
-            }else{
-                temp = temp + 55;
-            };
-            Vector::push_back(&mut data,temp);
-            number = number / 10;
-        };
-        data
     }
 
     public fun to_string(num: u64):vector<u8> {
@@ -2061,12 +2484,12 @@ module Market {
 
         // check lock      
         let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         // check nft
         let sender_addr = Signer::address_of(sender);
         let new_nft = NFTGallery::withdraw<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender, nft_id);
-        assert(Option::is_some(&new_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));
+        assert!(Option::is_some(&new_nft), Errors::invalid_argument(MARKET_INVALID_NFT_ID));
 
         // check quantity 
         let nft = Option::destroy_some(new_nft);
@@ -2074,7 +2497,7 @@ module Market {
         let nft_info = NFT::get_info<GoodsNFTInfoV2, GoodsNFTBodyV2>(&nft);
         let (_, _, base_meta, type_meta) = NFT::unpack_info<GoodsNFTInfoV2>(nft_info);
         let count = Vector::length(&type_meta.packages);
-        assert(count>0 && quantity>0 && quantity<=count,Errors::invalid_argument(MARKET_INVALID_NFT_AMOUNT));
+        assert!(count>0 && quantity>0 && quantity<=count,Errors::invalid_argument(MARKET_INVALID_NFT_AMOUNT));
 
         // open boxes
         let now = Timestamp::now_milliseconds();
@@ -2104,7 +2527,7 @@ module Market {
             let core = now + (i+1) * 10000;
             let power = if(*&type_meta.is_official==true){
                 if(*&type_meta.rarity==DICT_TYPE_RARITY_NORMAL){
-                    core % (100 - 10 + 1) + 10
+                    core % (80 - 30 + 1) + 30
                 }else if(*&type_meta.rarity==DICT_TYPE_RARITY_EXECLLENT){
                     core % (100 - 50 + 1) + 50
                 }else{
@@ -2160,30 +2583,30 @@ module Market {
     // bid goods
     public fun bid_v2(sender: &signer, seller: address, goods_id: u128, price: u128, quantity: u64) acquires EventV2, MarketV2, GoodsBasketV2 {
         let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         // check owner
         let sender_addr = Signer::address_of(sender);
-        assert(sender_addr!=seller, Errors::invalid_argument(MARKET_INVALID_BUYER));
+        assert!(sender_addr!=seller, Errors::invalid_argument(MARKET_INVALID_BUYER));
         
         let basket = borrow_global_mut<GoodsBasketV2>(seller);
         let goods = borrow_goods_v2(&mut basket.items, goods_id);
         if(goods.nft_id > 0) {
-            assert(quantity == goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+            assert!(quantity == goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
         };
 
-        assert(goods.sell_way==DICT_TYPE_SELL_WAY_BID || goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+        assert!(goods.sell_way==DICT_TYPE_SELL_WAY_BID || goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
         
         let now = Timestamp::now_seconds();
         let remain = goods.original_amount - goods.amount;
-        assert(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
-        assert(quantity > 0 && quantity <= remain, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+        assert!(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
+        assert!(quantity > 0 && quantity <= remain, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
         let last_price = if(quantity <= remain - goods.sell_amount) {
             goods.base_price
         } else {
             get_bid_price_v2(&goods.bid_list, goods.base_price, quantity)
         };
-        assert(check_price(last_price, goods.add_price, price), Errors::invalid_argument(MARKET_INVALID_PRICE));
+        assert!(check_price(last_price, goods.add_price, price), Errors::invalid_argument(MARKET_INVALID_PRICE));
         //accept nft
         NFTGallery::accept<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender);
         //save state
@@ -2223,18 +2646,18 @@ module Market {
         });
     }
 
-    // buy now 
-    public fun buy_now_v2(sender: &signer, seller: address, goods_id: u128, quantity: u64) acquires EventV2,MarketV2,IdentityV2,StorehouseV2, GoodsBasketV2,GoodsNFTNewCapabilityV2 {//EventV2, 
+    // buy now v2
+    public fun buy_now_v2(sender: &signer, seller: address, goods_id: u128, quantity: u64) acquires EventV2,MarketV2,IdentityV2,StorehouseV2, GoodsBasketV2,GoodsNFTNewCapabilityV2,StakingPoolV2 {//EventV2, 
 
         let now = Timestamp::now_seconds();
         let buyer = Signer::address_of(sender);
 
         // check owner
-        assert(buyer!=seller, Errors::invalid_argument(MARKET_INVALID_BUYER));
+        assert!(buyer!=seller, Errors::invalid_argument(MARKET_INVALID_BUYER));
 
         // check lock
         let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
-        assert(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
+        assert!(market_info.is_lock == false, Errors::invalid_state(MARKET_LOCKED));
 
         // get goods
         let basket = borrow_global_mut<GoodsBasketV2>(seller);
@@ -2242,11 +2665,11 @@ module Market {
 
         // check buy all nft if the nft is minted
         if(goods.nft_id > 0) {
-            assert(quantity == goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+            assert!(quantity == goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
         };
 
         // check sell way
-        assert(goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW || goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
+        assert!(goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW || goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID,Errors::invalid_argument(MARKET_INVALID_SELL_WAY));
 
         // accept nft
         NFTGallery::accept<GoodsNFTInfoV2, GoodsNFTBodyV2>(sender);
@@ -2262,7 +2685,7 @@ module Market {
         if(goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW){
 
             // check quantity
-            assert(quantity > 0 && goods.amount + quantity <= goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+            assert!(quantity > 0 && goods.amount + quantity <= goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
 
             // update goods amount
             goods.amount = goods.amount + quantity;
@@ -2274,10 +2697,10 @@ module Market {
         }else if(goods.sell_way==DICT_TYPE_SELL_WAY_BUY_NOW_AND_BID){
 
             // check quantity
-            assert(quantity > 0 && goods.amount + quantity <= goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
+            assert!(quantity > 0 && goods.amount + quantity <= goods.original_amount, Errors::invalid_argument(MARKET_INVALID_QUANTITY));
 
             // check end time
-            assert(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
+            assert!(now < goods.end_time, Errors::invalid_state(MARKET_ITEM_EXPIRED));
 
             // calculate amount
             goods.amount = goods.amount + quantity;
@@ -2288,7 +2711,7 @@ module Market {
                 goods.sell_amount = remain;
             };
 
-            //assert(quantity==0,Errors::invalid_argument(SYSTEM_ERROR_TEST));
+            //assert!(quantity==0,Errors::invalid_argument(SYSTEM_ERROR_TEST));
 
             // refund bid list
             let limit = goods.original_amount - goods.amount;
@@ -2349,11 +2772,33 @@ module Market {
         //handling charge
         let fee = (token_amount * MARKET_FEE_RATE) / 100;
         if(fee > 0u128) {
-            let fee_tokens = Token::withdraw<STC>(&mut market_info.funds, fee);
+
+            // to staking pool
+            let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+            let staking_fee = (fee * pool_info.fee_rate) / 100;
+            if(staking_fee>0u128){
+                let staking_tokens = Token::withdraw<STC>(&mut market_info.funds, staking_fee);
+                Token::deposit(&mut pool_info.jackpot, staking_tokens);
+
+                // do emit event
+                let exchange_nft_event = borrow_global_mut<EventV2<StakingRechargeEventV2>>(MARKET_ADDRESS);
+                Event::emit_event(&mut exchange_nft_event.events, StakingRechargeEventV2{
+                    owner: buyer,
+                    amount: staking_fee,
+                    time: Timestamp::now_seconds(),
+                    pool_power:pool_info.power,
+                    pool_amount:Token::value(&pool_info.jackpot),
+                });
+            };
+            
+            // to market fee
+            let fee_tokens = Token::withdraw<STC>(&mut market_info.funds, fee - staking_fee);
             Account::deposit(market_info.cashier, fee_tokens);
-            //to pay
+
+            // to pay
             let pay_tokens = Token::withdraw<STC>(&mut market_info.funds, token_amount - fee);
             Account::deposit(seller, pay_tokens);
+
         } else {
             //to pay
             let pay_tokens = Token::withdraw<STC>(&mut market_info.funds, token_amount);
@@ -2410,14 +2855,15 @@ module Market {
         new_packages
     }
 
-    // settlement
-    public fun settlement_v2(sender: &signer, seller: address, goods_id: u128) acquires EventV2,MarketV2,IdentityV2,StorehouseV2, GoodsBasketV2, GoodsNFTNewCapabilityV2 {
+    // settlement v2
+    public fun settlement_v2(sender: &signer, seller: address, goods_id: u128) acquires EventV2,MarketV2,IdentityV2,StorehouseV2, GoodsBasketV2, GoodsNFTNewCapabilityV2,StakingPoolV2 {
         check_market_owner_v2(sender);
 
+        let owner = Signer::address_of(sender);
         let basket = borrow_global_mut<GoodsBasketV2>(seller);
         let g = borrow_goods_v2(&mut basket.items, goods_id);
         let now = Timestamp::now_seconds();
-        assert(now >= g.end_time, Errors::invalid_state(MARKET_NOT_OVER));
+        assert!(now >= g.end_time, Errors::invalid_state(MARKET_NOT_OVER));
         let len = Vector::length(&g.bid_list);
         if(len > 0) {
             let market_info = borrow_global_mut<MarketV2>(MARKET_ADDRESS);
@@ -2468,11 +2914,33 @@ module Market {
                 //handling charge
                 let fee = (bid_data.total_coin * MARKET_FEE_RATE) / 100;
                 if(fee > 0u128) {
-                    let fee_tokens = Token::withdraw<STC>(&mut market_info.funds, fee);
+                    // to staking pool
+                    let pool_info = borrow_global_mut<StakingPoolV2>(MARKET_ADDRESS);
+                    let staking_fee = (fee * pool_info.fee_rate) / 100;
+                    if(staking_fee>0u128){
+                        let staking_tokens = Token::withdraw<STC>(&mut market_info.funds, staking_fee);
+                        Token::deposit(&mut pool_info.jackpot, staking_tokens);
+
+                        // do emit event
+                        let exchange_nft_event = borrow_global_mut<EventV2<StakingRechargeEventV2>>(MARKET_ADDRESS);
+                        Event::emit_event(&mut exchange_nft_event.events, StakingRechargeEventV2{
+                            owner: owner,
+                            amount: staking_fee,
+                            time: Timestamp::now_seconds(),
+                            pool_power:pool_info.power,
+                            pool_amount:Token::value(&pool_info.jackpot),
+                        });
+                    };
+            
+                    // to market fee
+                    let fee_tokens = Token::withdraw<STC>(&mut market_info.funds, fee - staking_fee);
                     Account::deposit(market_info.cashier, fee_tokens);
+
                     //to pay
                     let pay_tokens = Token::withdraw<STC>(&mut market_info.funds, bid_data.total_coin - fee);
                     Account::deposit(seller, pay_tokens);
+
+
                 } else {
                     //to pay
                     let pay_tokens = Token::withdraw<STC>(&mut market_info.funds, bid_data.total_coin);
@@ -2523,7 +2991,7 @@ module Market {
     // check owner
     fun check_market_owner_v2(sender: &signer): address {
         let addr = Signer::address_of(sender);
-        assert(addr == MARKET_ADDRESS, Errors::invalid_argument(1000));
+        assert!(addr == MARKET_ADDRESS, Errors::invalid_argument(1000));
         addr
     }
 
@@ -2532,40 +3000,40 @@ module Market {
 }
 
 module MarketScript {
-    use 0x1e0c830eF929e530DDcfA8d79f758d09::Market;
+    use 0x2d32bee4f260694a0b3f1143c64a505a::Market;
 
-    //account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::init_market --arg 0x1e0c830eF929e530DDcfA8d79f758d09
+    //account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::init_market --arg 0x2d32bee4f260694a0b3f1143c64a505a
     public(script) fun init_market(account: signer, cashier: address) {
         Market::init(&account, cashier);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::put_on --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::put_on --arg <...>
     public(script) fun put_on(account: signer, title: vector<u8>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, mail: vector<u8>, original_goods_id: u128) {
         Market::put_on(&account, title, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, mail, original_goods_id);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::put_on_nft --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::put_on_nft --arg <...>
     public(script) fun put_on_nft(sender: signer, nft_id: u64, base_price: u128, add_price: u128, end_time: u64, mail: vector<u8>, original_goods_id: u128) {
         Market::put_on_nft(&sender, nft_id, base_price, add_price, end_time, mail, original_goods_id);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::pull_off --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::pull_off --arg <...>
     public(script) fun pull_off(account: signer, goods_id: u128) {
         Market::pull_off(&account, goods_id);
     }
 
-    // account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::bid --arg 0x1e0c830eF929e530DDcfA8d79f758d09 1u128 12u128 1u64
+    // account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::bid --arg 0x2d32bee4f260694a0b3f1143c64a505a 1u128 12u128 1u64
     // "gas_used": "344104"
     public(script) fun bid(account: signer, seller: address, goods_id: u128, price: u128, quantity: u64) {
         Market::bid(&account, seller, goods_id, price, quantity);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::settlement --arg 0x1e0c830eF929e530DDcfA8d79f758d09 1u128
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::settlement --arg 0x2d32bee4f260694a0b3f1143c64a505a 1u128
     public(script) fun settlement(sender: signer, seller: address, goods_id: u128) {
         Market::settlement(&sender, seller, goods_id);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::set_lock --arg false
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::set_lock --arg false
     public(script) fun set_lock(sender: signer, is_lock: bool) {
         Market::set_lock(&sender, is_lock);
     }
@@ -2577,7 +3045,7 @@ module MarketScript {
 
     // ================================================================================(new version)=========================================================================================================
 
-    //account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::init_market_v2 --arg <...>
+    //account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::init_market_v2 --arg <...>
     public(script) fun init_market_v2(sender: signer, cashier: address) {
         let title = b"CyberRare";
         let gallary1 = b"https://www.cyberrare.io/v1.png";
@@ -2587,72 +3055,72 @@ module MarketScript {
         Market::init_market_v2(&sender, cashier,  title, description, gallary2);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::exchange_nft_v2 --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::exchange_nft_v2 --arg <...>
     public(script) fun exchange_nft_v2(sender: signer, nft_id: u64) {
         Market::exchange_nft_v2(&sender, nft_id);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::put_on_v2 --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::put_on_v2 --arg <...>
     public(script) fun put_on_v2(sender: signer, title: vector<u8>, sell_way:u64, fixed_price:u128, gtype:u64, tags:vector<u8>, packages:vector<vector<u8>>, package_types:vector<u64>, type: u64, base_price: u128, add_price: u128, image: vector<u8>, resource_url: vector<u8>, desc: vector<u8>, has_in_kind: bool, end_time: u64, amount: u64, original_goods_id: u128,rarity:u64, damping:u64, period:u64, kind:u64){
         Market::put_on_v2(&sender, title,sell_way,fixed_price,gtype,tags,packages,package_types, type, base_price, add_price, image, resource_url, desc, has_in_kind, end_time, amount, original_goods_id, rarity, damping, period, kind);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::put_on_nft_v2 --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::put_on_nft_v2 --arg <...>
     public(script) fun put_on_nft_v2(sender: signer, nft_id: u64,sell_way:u64, fixed_price:u128, tags:vector<u8>,version:u64, base_price: u128, add_price: u128, end_time: u64, original_goods_id: u128) {
         Market::put_on_nft_v2(&sender, nft_id,sell_way,fixed_price,tags,version, base_price, add_price, end_time, original_goods_id);
     }
 
-    //account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::pull_off_v2 --arg <...>
+    //account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::pull_off_v2 --arg <...>
     public(script) fun pull_off_v2(sender: signer, goods_id: u128) {
         Market::pull_off_v2(&sender, goods_id);
     }
 
-    // account execute-function -b --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::bid_v2 --arg <...>
+    // account execute-function -b --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::bid_v2 --arg <...>
     public(script) fun bid_v2(sender: signer, seller: address, goods_id: u128, price: u128, quantity: u64) {
         Market::bid_v2(&sender, seller, goods_id, price, quantity);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::settlement_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::settlement_v2 --arg <...>
     public(script) fun settlement_v2(sender: signer, seller: address, goods_id: u128) {
         Market::settlement_v2(&sender, seller, goods_id);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::buy_now_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::buy_now_v2 --arg <...>
     public(script) fun buy_now_v2(sender: signer, seller: address, goods_id: u128, quantity: u64) {
         Market::buy_now_v2(&sender, seller, goods_id,quantity);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::open_box_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::open_box_v2 --arg <...>
     public(script) fun open_box_v2(sender: signer,  nft_id: u64, quantity: u64) {
         Market::open_box_v2(&sender, nft_id,quantity);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::create_partner_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::create_partner_v2 --arg <...>
     public(script) fun create_partner_v2(sender: signer, partner: address, type:u64){
          Market::create_partner_v2(&sender, partner, type);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::remove_partner_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::remove_partner_v2 --arg <...>
     public(script) fun remove_partner_v2(sender: signer, partner: address){
          Market::remove_partner_v2(&sender, partner);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::cancel_goods_v1 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::cancel_goods_v1 --arg <...>
     public(script) fun cancel_goods_v1(sender: signer,seller:address, goods_id: u128)  {
         Market::cancel_goods_v1(&sender, seller,goods_id);
     }
 
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::cancel_goods_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::cancel_goods_v2 --arg <...>
     public(script) fun cancel_goods_v2(sender: signer,seller:address, goods_id: u128)  {
         Market::cancel_goods_v2(&sender, seller,goods_id);
     }
     
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::sync_market_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::sync_market_v2 --arg <...>
     public(script) fun sync_market_v2(sender: signer) {
         Market::sync_market_v2(&sender);
     }
     
-    // account execute-function -b -s 0x1e0c830eF929e530DDcfA8d79f758d09 --function 0x1e0c830eF929e530DDcfA8d79f758d09::MarketScript::set_lock_v2 --arg <...>
+    // account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::set_lock_v2 --arg <...>
     public(script) fun set_lock_v2(sender: signer, is_lock: bool) {
         Market::set_lock_v2(&sender, is_lock);
     }
@@ -2668,5 +3136,38 @@ module MarketScript {
     public(script) fun create_test_data_v2(sender: signer) {
         Market::create_test_data_v2(&sender);
     }
+
+    public(script) fun staking_deposit_v2(sender: signer, nft_id: u64){
+        Market::staking_deposit_v2(&sender,nft_id);
+    }
+
+    public(script) fun staking_withdraw_v2(sender: signer, nft_id: u64){
+        Market::staking_withdraw_v2(&sender,nft_id);
+    }
+    
+    public(script) fun staking_reward_v2(sender: signer, amount: u128, nonce:u64, signature:vector<u8>){
+        Market::staking_reward_v2(&sender,amount,nonce,signature);
+    }
+    
+    public(script) fun staking_recharge_v2(sender: signer, amount: u128){
+        Market::staking_recharge_v2(&sender,amount);
+    }
+    
+    public(script) fun staking_exchange_v2(sender: signer, nft_id: u64){
+        Market::staking_exchange_v2(&sender,nft_id);
+    }
+    
+    public(script) fun staking_add_exchange_v2(sender: signer,packages:vector<vector<u8>>){
+        Market::staking_add_exchange_v2(&sender,packages);
+    }
+        
+    public(script) fun staking_clean_exchange_v2(sender: signer){
+        Market::staking_clean_exchange_v2(&sender);
+    }
+    
+    public(script) fun init_staking_v2(sender: signer){
+        Market::init_staking_v2(&sender);
+    }
+    
 }
 }
