@@ -37,7 +37,21 @@ account execute-function -b -s 合约地址 --function 合约地址::MarketScrip
 account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::init_market_v2 --arg 0x2d32bee4f260694a0b3f1143c64a505a
 ```
 
-### 6.管理合作商
+### 6.初始化Staking
+```
+account execute-function -b -s 合约地址 --function 合约地址::MarketScript::init_staking_v2
+
+account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::init_staking_v2
+```
+
+### 7.质押奖池充值
+```
+account execute-function -b -s 合约地址 --function 合约地址::MarketScript::staking_recharge_v2
+
+account execute-function -b -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::staking_recharge_v2
+```
+
+### 8.管理合作商
 ```
 account execute-function -s 合约地址 --function 合约地址::MarketScript::create_partner_v2 --arg 合作商发布钱包地址 --arg 合作商类型
 account execute-function -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::create_partner_v2 --arg 0x2d32bee4f260694a0b3f1143c64a505a --arg 0u64
@@ -45,7 +59,7 @@ account execute-function -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32
 account execute-function -s 合约账号 --function 合约账号::MarketScript::remove_partner_v2 --arg 需要删除的合作商钱包地址
 account execute-function -s 0x2d32bee4f260694a0b3f1143c64a505a --function 0x2d32bee4f260694a0b3f1143c64a505a::MarketScript::remove_partner_v2 --arg 0x2d32bee4f260694a0b3f1143c64a505a
 ```
-### 7.查看合约状态
+### 9.查看合约状态
 ```
 state get resource 合约地址 合约地址::Market::MarketV2
 
