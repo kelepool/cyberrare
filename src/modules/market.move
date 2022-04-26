@@ -36,7 +36,7 @@ module Market {
     const MARKET_FEE_RATE: u128 = 3;
 
     //Products maximum effective bid
-    const ARG_MAX_BID: u64 = 100;
+    const ARG_MAX_BID: u64 = 50;
 
     struct Market has key, store{
         counter: u64,
